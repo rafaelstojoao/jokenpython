@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jokenpo com Webcam</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --text: #1f2328;
+    --muted: #5d6470;
+    --border: #e2e0da;
+    --accent: #2f6fdb;
+    --accent-soft: #e8f0fd;
+    --code-bg: #1e2430;
+    --code-text: #e6edf3;
+    --warn-bg: #fff6e0;
+    --warn-border: #e9b949;
+    --ok: #1f8a4c;
+    --bad: #c93c3c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171b;
+      --surface: #1e2127;
+      --text: #e6e8eb;
+      --muted: #9aa1ad;
+      --border: #30343c;
+      --accent: #6ea0ff;
+      --accent-soft: #1f2a40;
+      --code-bg: #0d1016;
+      --code-text: #e6edf3;
+      --warn-bg: #2d2615;
+      --warn-border: #a9832a;
+      --ok: #4cc27f;
+      --bad: #ff7b7b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15171b;
+    --surface: #1e2127;
+    --text: #e6e8eb;
+    --muted: #9aa1ad;
+    --border: #30343c;
+    --accent: #6ea0ff;
+    --accent-soft: #1f2a40;
+    --code-bg: #0d1016;
+    --code-text: #e6edf3;
+    --warn-bg: #2d2615;
+    --warn-border: #a9832a;
+    --ok: #4cc27f;
+    --bad: #ff7b7b;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 820px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { margin-bottom: 28px; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; }
+  .lead { color: var(--muted); margin: 0; font-size: 1.05rem; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  nav a {
+    text-decoration: none; color: var(--accent); background: var(--accent-soft);
+    padding: 6px 12px; border-radius: 999px; font-size: .9rem; font-weight: 600;
+  }
+  section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px 22px 8px; margin-bottom: 22px;
+  }
+  h2 { font-size: 1.4rem; margin: 0 0 12px; }
+  h3 { font-size: 1.05rem; margin: 22px 0 6px; }
+  p, li { max-width: 70ch; }
+  ol.steps { list-style: none; padding: 0; margin: 0; counter-reset: s; }
+  ol.steps > li { position: relative; padding-left: 44px; margin-bottom: 22px; counter-increment: s; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700;
+    display: grid; place-items: center; font-size: .95rem;
+  }
+  ol.steps > li > strong:first-child { display: block; font-size: 1.05rem; }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: .92em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+  .cmd {
+    position: relative; background: var(--code-bg); color: var(--code-text);
+    border-radius: 8px; padding: 12px 84px 12px 14px; margin: 8px 0 10px;
+    font-family: Consolas, "Cascadia Code", monospace; font-size: .92rem;
+    overflow-x: auto; white-space: pre;
+  }
+  .cmd button {
+    position: absolute; top: 8px; right: 8px;
+    font: 600 .8rem system-ui, sans-serif; cursor: pointer;
+    background: #3a4252; color: #fff; border: 0; border-radius: 6px; padding: 5px 10px;
+  }
+  .cmd button:hover { background: #4b556a; }
+  .note {
+    background: var(--warn-bg); border-left: 4px solid var(--warn-border);
+    border-radius: 6px; padding: 10px 14px; margin: 10px 0 14px;
+  }
+  .files { display: grid; gap: 8px; margin: 10px 0 18px; padding: 0; list-style: none; }
+  .files li { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+  .files small { color: var(--muted); display: block; }
+
+  .gestures { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+  .gesture { border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .gesture .emoji { font-size: 2.6rem; line-height: 1; }
+  .gesture b { display: block; margin: 8px 0 4px; font-size: 1.05rem; }
+  .gesture span { color: var(--muted); font-size: .9rem; }
+  .beats { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 6px 0 18px; padding: 0; list-style: none; font-weight: 600; }
+  .beats li { background: var(--accent-soft); border-radius: 8px; padding: 6px 12px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 18px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; }
+  kbd {
+    font-family: Consolas, monospace; font-size: .9em; border: 1px solid var(--border);
+    border-bottom-width: 3px; border-radius: 5px; padding: 1px 7px; background: var(--bg); white-space: nowrap;
+  }
+  details { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details[open] summary { margin-bottom: 6px; }
+  .ok { color: var(--ok); font-weight: 600; }
+  .bad { color: var(--bad); font-weight: 600; }
+  footer { color: var(--muted); font-size: .9rem; text-align: center; }
+  @media (max-width: 520px) {
+    h1 { font-size: 1.6rem; }
+    section { padding: 18px 14px 4px; }
+    ol.steps > li { padding-left: 38px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>✊ ✋ ✌️ Jokenpo com Webcam</h1>
+    <p class="lead">Como instalar o jogo em um computador novo (mesmo sem Python) e como jogar.</p>
+    <nav>
+      <a href="#instalar">Instalação</a>
+      <a href="#jogar">Como jogar</a>
+      <a href="#problemas">Problemas comuns</a>
+    </nav>
+  </header>
+
+  <section id="instalar">
+    <h2>Instalação (Windows)</h2>
+    <p>Você vai precisar de uma <strong>webcam</strong>, de <strong>internet</strong> para baixar o Python e as bibliotecas (só na primeira vez) e destes arquivos do jogo, todos juntos numa mesma pasta:</p>
+    <ul class="files">
+      <li><code>jokenpo.py</code><small>O jogo.</small></li>
+      <li><code>requirements.txt</code><small>Lista de bibliotecas que o jogo usa.</small></li>
+      <li><code>hand_landmarker.task</code><small>Modelo que reconhece a mão. É opcional: se faltar, o jogo baixa sozinho na primeira vez que abrir.</small></li>
+    </ul>
+
+    <ol class="steps">
+      <li>
+        <strong>Instale o Python</strong>
+        Acesse <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org/downloads</a>, baixe o <strong>Python 3.14</strong> e execute o instalador.
+        <div class="note">⚠️ Na primeira tela do instalador, <strong>marque a caixa “Add python.exe to PATH”</strong> antes de clicar em <em>Install Now</em>. Se esquecer, o comando <code>python</code> não vai funcionar.</div>
+        Para instalar pelo terminal em vez do site, use:
+        <div class="cmd">winget install Python.Python.3.14</div>
+      </li>
+
+      <li>
+        <strong>Confira se o Python foi instalado</strong>
+        Feche e abra de novo qualquer terminal. Abra o menu Iniciar, digite <code>cmd</code>, abra o <em>Prompt de Comando</em> e rode:
+        <div class="cmd">python --version</div>
+        Deve aparecer algo como <code>Python 3.14.x</code>. Se a Microsoft Store abrir, ou se aparecer <em>“não é reconhecido”</em>, veja <a href="#problemas">Problemas comuns</a>.
+      </li>
+
+      <li>
+        <strong>Abra um terminal na pasta do jogo</strong>
+        No Explorador de Arquivos, entre na pasta com os arquivos do jogo, clique na <strong>barra de endereço</strong>, apague o que estiver escrito, digite <code>cmd</code> e aperte <kbd>Enter</kbd>. Um terminal abre direto nessa pasta.
+      </li>
+
+      <li>
+        <strong>Crie o ambiente virtual (venv)</strong>
+        O venv é uma pasta com uma cópia do Python só para este jogo, para as bibliotecas dele não se misturarem com as do resto do computador.
+        <div class="cmd">python -m venv venv</div>
+      </li>
+
+      <li>
+        <strong>Instale as bibliotecas</strong>
+        Baixa o MediaPipe (reconhecimento da mão) e o OpenCV (webcam e janela). Pode levar alguns minutos.
+        <div class="cmd">venv\Scripts\python -m pip install -r requirements.txt</div>
+      </li>
+
+      <li>
+        <strong>Abra o jogo</strong>
+        <div class="cmd">venv\Scripts\python jokenpo.py</div>
+        A janela da webcam deve abrir. Mensagens de aviso do MediaPipe no terminal (linhas começando com <code>W0000</code> ou <code>INFO</code>) são normais e podem ser ignoradas.
+      </li>
+    </ol>
+
+    <h3>Das próximas vezes</h3>
+    <p>Os passos 1 a 5 só são feitos uma vez. Depois, basta abrir o terminal na pasta do jogo (passo 3) e rodar:</p>
+    <div class="cmd">venv\Scripts\python jokenpo.py</div>
+  </section>
+
+  <section id="jogar">
+    <h2>Como jogar</h2>
+    <p>Você joga contra o computador, que escolhe a jogada dele ao acaso. Mostre a mão para a webcam fazendo um dos três gestos:</p>
+
+    <div class="gestures">
+      <div class="gesture"><div class="emoji">✊</div><b>Pedra</b><span>Mão fechada, todos os dedos dobrados.</span></div>
+      <div class="gesture"><div class="emoji">✋</div><b>Papel</b><span>Mão aberta, os quatro dedos esticados.</span></div>
+      <div class="gesture"><div class="emoji">✌️</div><b>Tesoura</b><span>Só o indicador e o médio esticados.</span></div>
+    </div>
+
+    <h3>Quem ganha</h3>
+    <ul class="beats">
+      <li>✊ Pedra quebra ✌️ Tesoura</li>
+      <li>✌️ Tesoura corta ✋ Papel</li>
+      <li>✋ Papel embrulha ✊ Pedra</li>
+    </ul>
+    <p>Jogadas iguais dão <strong>empate</strong>.</p>
+
+    <h3>Uma rodada, passo a passo</h3>
+    <ol>
+      <li>Deixe a mão visível para a câmera. No canto inferior da tela, <strong>“Gesto:”</strong> mostra o que o jogo está reconhecendo naquele instante. Use isso para ajustar a posição da mão.</li>
+      <li>Aperte <kbd>Espaço</kbd>. Começa a contagem <strong>JO… KEN… PO!</strong></li>
+      <li>Quando aparecer <strong>PO!</strong>, faça o gesto e segure por um instante. O jogo lê a mão por menos de meio segundo.</li>
+      <li>Aparecem a sua jogada, a do computador e quem venceu. O placar no topo é atualizado.</li>
+      <li>Aperte <kbd>Espaço</kbd> de novo para a próxima rodada.</li>
+    </ol>
+
+    <h3>Teclas</h3>
+    <table>
+      <thead><tr><th>Tecla</th><th>O que faz</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>Espaço</kbd></td><td>Começa uma rodada</td></tr>
+        <tr><td><kbd>R</kbd></td><td>Zera o placar</td></tr>
+        <tr><td><kbd>Q</kbd> ou <kbd>Esc</kbd></td><td>Fecha o jogo</td></tr>
+      </tbody>
+    </table>
+    <p>As teclas só funcionam com a janela do jogo selecionada. Se não responderem, clique uma vez na janela.</p>
+
+    <h3>Dicas para o jogo reconhecer melhor</h3>
+    <ul>
+      <li>Deixe <strong>a mão inteira, com o pulso</strong>, dentro da imagem, a uns 40–80 cm da câmera.</li>
+      <li>Jogue num lugar <strong>bem iluminado</strong>, sem luz forte atrás de você.</li>
+      <li>Mostre só <strong>uma mão</strong> por vez.</li>
+      <li>O polegar não conta: na tesoura, tanto faz ele estar aberto ou dobrado.</li>
+      <li>Se aparecer <em>“Nao reconheci sua mao”</em>, a mão não apareceu direito no “PO!”. É só jogar de novo.</li>
+    </ul>
+  </section>
+
+  <section id="problemas">
+    <h2>Problemas comuns</h2>
+
+    <details>
+      <summary><code>python</code> “não é reconhecido como um comando” ou a Microsoft Store abre</summary>
+      <p>O Python não foi adicionado ao PATH. Rode o instalador do Python de novo, escolha <em>Modify</em> (ou desinstale e instale outra vez) e <strong>marque “Add python.exe to PATH”</strong>. Depois feche e abra o terminal.</p>
+      <p>Se a Microsoft Store continuar abrindo, vá em <em>Configurações → Aplicativos → Configurações avançadas de aplicativos → Aliases de execução de aplicativo</em> e desligue <em>python.exe</em> e <em>python3.exe</em>.</p>
+    </details>
+
+    <details>
+      <summary>Erro ao instalar: “No matching distribution found for mediapipe”</summary>
+      <p>A versão do Python instalada não é compatível com essa versão do MediaPipe. O jogo foi testado no <strong>Python 3.14</strong>: confira com <code>python --version</code> e, se for outra versão, instale a 3.14.</p>
+      <p>Outra saída é abrir o <code>requirements.txt</code>, apagar os números de versão (deixar só <code>mediapipe</code> e <code>opencv-contrib-python</code>) e rodar a instalação de novo, para o pip escolher versões compatíveis.</p>
+    </details>
+
+    <details>
+      <summary>“Nao foi possivel abrir a webcam”</summary>
+      <ul>
+        <li>Feche outros programas que possam estar usando a câmera (Teams, Zoom, Meet no navegador etc.).</li>
+        <li>Em <em>Configurações → Privacidade e segurança → Câmera</em>, deixe ligados <strong>“Acesso à câmera”</strong> e <strong>“Permitir que aplicativos da área de trabalho acessem a câmera”</strong>.</li>
+        <li>Se o computador tiver mais de uma câmera e abrir a errada, edite o <code>jokenpo.py</code> e troque <code>cv2.VideoCapture(0</code> por <code>cv2.VideoCapture(1</code>.</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>Erro ao baixar o <code>hand_landmarker.task</code></summary>
+      <p>Na primeira vez, sem esse arquivo na pasta, o jogo precisa de internet para baixá-lo. Conecte-se à internet ou copie o arquivo <code>hand_landmarker.task</code> do computador original para a pasta do jogo.</p>
+    </details>
+
+    <details>
+      <summary>O jogo está lento ou travando</summary>
+      <p>Feche outros programas pesados. O reconhecimento da mão roda no processador, e computadores mais antigos podem ficar com a imagem um pouco atrasada, mas o jogo continua funcionando.</p>
+    </details>
+  </section>
+
+  <footer>Jokenpo com Webcam · Python + OpenCV + MediaPipe</footer>
+</main>
+
+<script>
+  document.querySelectorAll('.cmd').forEach(function (box) {
+    var texto = box.textContent.trim();
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Copiar';
+    btn.addEventListener('click', function () {
+      var feito = function () {
+        btn.textContent = 'Copiado!';
+        setTimeout(function () { btn.textContent = 'Copiar'; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(feito, function () { btn.textContent = 'Erro'; });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = texto; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); feito(); } catch (e) { btn.textContent = 'Erro'; }
+        document.body.removeChild(ta);
+      }
+    });
+    box.appendChild(btn);
+  });
+</script>
+</body>
+</html>
